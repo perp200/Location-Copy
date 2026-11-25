@@ -1,0 +1,167 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>現在地メモ</title>
+
+<style>
+  body {
+    font-family: sans-serif;
+    max-width: 480px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #f5f5f5;
+    color: #222;
+  }
+
+  h2 {
+    text-align: center;
+  }
+
+  button, textarea {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 16px;
+    margin: 8px 0;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+
+  button {
+    border: none;
+    background: #246bce;
+    color: white;
+    font-weight: bold;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+  }
+
+  textarea {
+    border: 1px solid #ccc;
+  }
+
+  #result {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: white;
+    padding: 14px;
+    border-radius: 10px;
+    min-height: 50px;
+  }
+
+  #status {
+    text-align: center;
+    color: #555;
+  }
+</style>
+</head>
+
+<body>
+
+<h2>現在地メモ</h2>
+
+<textarea
+  id="memo"
+  rows="2"
+  placeholder="ここにメモ（任意）"
+></textarea>
+
+<button id="get">
+  現在地を取得してコピー
+</button>
+
+<p id="status">待機中</p>
+
+<div id="result"></div>
+
+<button id="map" disabled>
+  Googleマップで開く
+</button>
+
+<script>
+const getBtn = document.getElementById("get");
+const mapBtn = document.getElementById("map");
+const status = document.getElementById("status");
+const result = document.getElementById("result");
+
+let mapUrl = "";
+
+getBtn.addEventListener("click", () => {
+
+  if (!navigator.geolocation) {
+    status.textContent =
+      "このブラウザは位置情報に対応していません";
+    return;
+  }
+
+  getBtn.disabled = true;
+  status.textContent = "GPS取得中...";
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const accuracy = Math.round(pos.coords.accuracy);
+
+      const memo =
+        document.getElementById("memo").value.trim();
+
+      mapUrl =
+        `https://www.google.com/maps?q=${lat},${lon}`;
+
+      const text =
+        `${memo ? memo + "\n" : ""}測位精度：約${accuracy}m\n${mapUrl}`;
+
+      result.textContent = text;
+
+      try {
+        await navigator.clipboard.writeText(text);
+        status.textContent = "コピーしました！";
+      } catch (e) {
+        status.textContent =
+          "コピーできませんでした。文章を手動でコピーしてください。";
+      }
+
+      mapBtn.disabled = false;
+      getBtn.disabled = false;
+
+    },
+
+    (err) => {
+
+      const messages = {
+        1: "位置情報の利用が許可されていません",
+        2: "現在地を取得できません",
+        3: "GPS取得がタイムアウトしました"
+      };
+
+      status.textContent =
+        messages[err.code] || "位置情報取得エラー";
+
+      getBtn.disabled = false;
+
+    },
+
+    {
+      enableHighAccuracy: true,
+      timeout: 20000,
+      maximumAge: 0
+    }
+  );
+
+});
+
+mapBtn.addEventListener("click", () => {
+  if (mapUrl) {
+    window.open(mapUrl, "_blank");
+  }
+});
+</script>
+
+</body>
+</html>
